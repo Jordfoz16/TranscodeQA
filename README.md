@@ -43,7 +43,7 @@ python vmaf_compare.py samples/base.mkv samples/transcoded/
 
 - `--extensions` – Comma-separated video extensions to search (default: `mkv,mp4,webm,mov`)
 - `--no-progress` – Disable the progress bar (useful when piping output)
-- `--jobs`, `-j` – Number of parallel VMAF jobs (default: 1). Increase to test multiple files simultaneously.
+- `--jobs`, `-j` – Number of parallel VMAF jobs (default: 4). Pass `--jobs 1` for single-threaded.
 - `--sort` – Sort table by `name`, `ratio`, `saved`, or `score` (default: `ratio`)
 - `--output`, `-o` – Write results to a file (plain text)
 
@@ -65,22 +65,38 @@ Results are sorted by compression ratio by default; use `--sort` to sort by name
 
 ## Docker
 
-Build the image:
+### Pulling from GHCR
+
+Pre-built multi-architecture images are published to [GitHub Container Registry](https://github.com/jordfoz16/transcode-tester/pkgs/container/transcode-tester):
+
+```bash
+docker pull ghcr.io/jordfoz16/transcode-tester:latest
+```
+
+Supports **linux/amd64** (x86_64) and **linux/arm64** (Raspberry Pi 4/5). Docker automatically pulls the right image for your platform.
+
+If the package is private, make it public via the package settings, or authenticate with `docker login ghcr.io -u USERNAME -p YOUR_GITHUB_PAT` before pulling.
+
+### Building locally
 
 ```bash
 docker build -t vmaf-compare .
 ```
 
-Run with volume mounts for the source file, transcoded folder, and output directory:
+### Running
+
+Run with volume mounts for the source file, transcoded folder, and output directory (uses 4 parallel jobs by default; add `--jobs 1` for single-threaded):
 
 ```bash
 docker run --rm \
   -v "$(pwd)/samples:/input:ro" \
   -v "$(pwd)/output:/output" \
-  vmaf-compare \
+  ghcr.io/jordfoz16/transcode-tester:latest \
   /input/base.mkv /input/transcoded/codec/ \
   --output /output/results.txt
 ```
+
+With a local build, replace `ghcr.io/jordfoz16/transcode-tester:latest` with `vmaf-compare`.
 
 - **Source file**: First argument – path to the original video (e.g. `/input/base.mkv`)
 - **Transcoded folder**: Second argument – directory with transcoded videos (e.g. `/input/transcoded/codec/`)

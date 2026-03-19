@@ -150,9 +150,9 @@ def main() -> int:
         "--jobs",
         "-j",
         type=int,
-        default=1,
+        default=4,
         metavar="N",
-        help="Number of parallel VMAF jobs (default: 1)",
+        help="Number of parallel VMAF jobs (default: 4)",
     )
     parser.add_argument(
         "--sort",
