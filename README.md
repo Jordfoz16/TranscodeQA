@@ -67,10 +67,10 @@ Results are sorted by compression ratio by default; use `--sort` to sort by name
 
 ### Pulling from GHCR
 
-Pre-built multi-architecture images are published to [GitHub Container Registry](https://github.com/jordfoz16/transcode-tester/pkgs/container/transcode-tester):
+Pre-built multi-architecture images are published to [GitHub Container Registry](https://github.com/jordfoz16/TranscodeQA/pkgs/container/TranscodeQA):
 
 ```bash
-docker pull ghcr.io/jordfoz16/transcode-tester:latest
+docker pull ghcr.io/jordfoz16/TranscodeQA:latest
 ```
 
 Supports **linux/amd64** (x86_64) and **linux/arm64** (Raspberry Pi 4/5). Docker automatically pulls the right image for your platform.
@@ -91,12 +91,12 @@ Run with volume mounts for the source file, transcoded folder, and output direct
 docker run --rm \
   -v "$(pwd)/samples:/input:ro" \
   -v "$(pwd)/output:/output" \
-  ghcr.io/jordfoz16/transcode-tester:latest \
+  ghcr.io/jordfoz16/TranscodeQA:latest \
   /input/base.mkv /input/transcoded/codec/ \
   --output /output/results.txt
 ```
 
-With a local build, replace `ghcr.io/jordfoz16/transcode-tester:latest` with `vmaf-compare`.
+With a local build, replace `ghcr.io/jordfoz16/TranscodeQA:latest` with `vmaf-compare`.
 
 ### Docker Compose
 

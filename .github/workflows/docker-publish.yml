@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/jordfoz16/transcode-tester
+  IMAGE_NAME: ghcr.io/jordfoz16/TranscodeQA
 
 jobs:
   build-and-push:
