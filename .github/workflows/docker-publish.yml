@@ -1,12 +1,16 @@
 name: Build and Push to GHCR
 
 on:
+  # Manual run when you need a fresh image (e.g. after a doc-only push skipped CI).
+  workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
     tags:
       - "v*"
+    # Use **/*.md — "**.md" does not match markdown the way people expect and can confuse filters.
     paths-ignore:
-      - "**.md"
+      - "**/*.md"
       - ".gitignore"
 
 env:
