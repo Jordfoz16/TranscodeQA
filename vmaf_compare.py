@@ -131,19 +131,26 @@ def run_vmaf(
     transcoded: Path,
     threads: int = 0,
     progress_callback: Optional[Callable[[float, float], None]] = None,
+    n_subsample: int = 1,
 ) -> Optional[float]:
     """Run ffmpeg libvmaf and return the VMAF score, or None on failure.
 
     progress_callback(current_sec, total_sec) is called for each ffmpeg
     progress line so the caller can update a progress bar in real time.
     threads=0 lets ffmpeg choose automatically.
+    n_subsample: libvmaf frame interval; 1 = every frame, N > 1 = every Nth frame.
     """
+    lavfi = (
+        "libvmaf"
+        if n_subsample <= 1
+        else f"libvmaf=n_subsample={n_subsample}"
+    )
     cmd = [
         "ffmpeg",
         "-y",
         "-i", str(source),
         "-i", str(transcoded),
-        "-lavfi", "libvmaf",
+        "-lavfi", lavfi,
         "-f", "null",
         "-",
     ]
@@ -215,6 +222,18 @@ def main() -> int:
         help="Number of parallel VMAF jobs (default: 4)",
     )
     parser.add_argument(
+        "--n-subsample",
+        "-n",
+        type=int,
+        default=1,
+        metavar="N",
+        dest="n_subsample",
+        help=(
+            "VMAF frame subsampling: score every Nth frame via ffmpeg libvmaf (default: 1 = all frames). "
+            "Larger N is faster but noisier on short clips; odd values (3, 5, 7) are often safer than even."
+        ),
+    )
+    parser.add_argument(
         "--sort",
         choices=["name", "ratio", "saved", "score"],
         default="ratio",
@@ -234,6 +253,10 @@ def main() -> int:
 
     if args.jobs < 1:
         console.print("[red]Error: --jobs must be at least 1[/red]")
+        return 1
+
+    if args.n_subsample < 1:
+        console.print("[red]Error: --n-subsample must be at least 1[/red]")
         return 1
 
     # Validate source
@@ -265,6 +288,11 @@ def main() -> int:
     jobs = min(args.jobs, total_files)
     cpu_count = os.cpu_count() or 1
     threads_per_job = max(1, cpu_count // jobs)
+
+    if args.n_subsample > 1:
+        console.print(
+            f"[dim]VMAF frame subsampling: every {args.n_subsample}th frame (libvmaf n_subsample)[/dim]"
+        )
 
     # Pre-fetch durations for all transcoded files in parallel (fast ffprobe, no decode)
     if not args.no_progress:
@@ -323,6 +351,7 @@ def main() -> int:
                 transcoded,
                 threads=threads_per_job,
                 progress_callback=on_progress if not args.no_progress else None,
+                n_subsample=args.n_subsample,
             )
 
             # Advance overall task for any unaccounted duration (e.g. no progress events)

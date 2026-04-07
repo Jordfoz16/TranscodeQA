@@ -43,9 +43,10 @@ python vmaf_compare.py samples/base.mkv samples/transcoded/
 
 - `--extensions` – Comma-separated video extensions to search (default: `mkv,mp4,webm,mov`)
 - `--no-progress` – Disable the progress bar (useful when piping output)
+- `--n-subsample`, `-n` – Pass `n_subsample` to ffmpeg’s `libvmaf` filter: score every Nth frame (default: `1` = every frame). Speeds up long sources; scores are noisier on short clips. Odd values (e.g. 3, 5) are often preferable to even values for some encodes.
 - `--jobs`, `-j` – Number of parallel VMAF jobs (default: 4). Pass `--jobs 1` for single-threaded.
 - `--sort` – Sort table by `name`, `ratio`, `saved`, or `score` (default: `ratio`)
-- `--output`, `-o` – Write results to a file (plain text)
+- `--output`, `-o` – Write results to a file (plain text) in addition to printing to the terminal. Progress bars are still shown; use `--no-progress` to suppress them.
 
 ## Output
 
@@ -85,27 +86,40 @@ docker build -t vmaf-compare .
 
 ### Running
 
-Run with volume mounts for the source file, transcoded folder, and output directory (uses 4 parallel jobs by default; add `--jobs 1` for single-threaded):
+Run with volume mounts for the source file and transcoded folder. The `-t` flag allocates a pseudo-TTY so the progress bars render correctly:
 
 ```bash
-docker run --rm \
+docker run --rm -t \
+  -v "$(pwd)/samples:/input:ro" \
+  ghcr.io/jordfoz16/transcodeqa:latest \
+  /input/base.mkv /input/transcoded/codec/
+```
+
+To also save results to a file, add `-v` for the output directory and `--output`:
+
+```bash
+docker run --rm -t \
   -v "$(pwd)/samples:/input:ro" \
   -v "$(pwd)/output:/output" \
-  ghcr.io/jordfoz16/TranscodeQA:latest \
+  ghcr.io/jordfoz16/transcodeqa:latest \
   /input/base.mkv /input/transcoded/codec/ \
   --output /output/results.txt
 ```
 
-With a local build, replace `ghcr.io/jordfoz16/TranscodeQA:latest` with `vmaf-compare`.
+With a local build, replace `ghcr.io/jordfoz16/transcodeqa:latest` with `vmaf-compare`.
 
 ### Docker Compose
 
+Two services are defined in [docker-compose.yml](docker-compose.yml) — update the `command` paths to match your files before running.
+
+**Interactive** (live progress bars, results printed to terminal):
+
 ```bash
-docker compose run --rm vmaf-compare
+docker compose run --rm transcodeqa
 ```
 
-Uses `samples/` and `output/` as configured in [docker-compose.yml](docker-compose.yml). Edit the `command` section to change source file, transcoded path, or output location.
+**Unattended** (no TTY needed, results written to `./output/results.txt`):
 
-- **Source file**: First argument – path to the original video (e.g. `/input/base.mkv`)
-- **Transcoded folder**: Second argument – directory with transcoded videos (e.g. `/input/transcoded/codec/`)
-- **Output**: Use `--output /output/results.txt` to write results to a file accessible outside the container
+```bash
+docker compose run --rm transcodeqa-batch
+```
