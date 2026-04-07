@@ -14,7 +14,8 @@ COPY requirements.txt .
 RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Copy application
-COPY vmaf_compare.py .
+COPY transcode_compare.py .
+COPY transcodeqa/ transcodeqa/
 
 # Override entrypoint: run our script; docker run args become script args
-ENTRYPOINT ["python3", "vmaf_compare.py"]
+ENTRYPOINT ["python3", "transcode_compare.py"]

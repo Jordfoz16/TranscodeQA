@@ -1,19 +1,24 @@
-# VMAF Transcode Comparison
+# Transcode QA
 
-Compare transcoded video files against a source file using VMAF (Video Multi-Method Assessment Fusion) quality analysis. Produces a table with filename, compression ratio, file size, data saved, and VMAF score.
+Compare transcoded video files against a source file using **VMAF** (Video Multi-Method Assessment Fusion) or **SSIM + PSNR** (via ffmpeg filters). Produces a table with filename, codec, compression ratio, file size, data saved, and quality scores.
+
+The project is a small Python package (`transcodeqa/`) with a `transcode_compare.py` entry point.
 
 ## Prerequisites
 
-- **Python 3.8+**
-- **ffmpeg** with libvmaf support (built with `--enable-libvmaf`)
+- **Python 3.10+** (uses `list[dict]` / `tuple` type syntax in places; use 3.9+ with minor edits if needed)
+- **ffmpeg** with filters for your chosen metric:
+  - **VMAF**: build with `--enable-libvmaf` (or use a distribution that ships it)
 
-Verify ffmpeg has libvmaf:
+Verify ffmpeg has libvmaf when using `--metric vmaf` (default):
 
 ```bash
 ffmpeg -filters 2>&1 | grep vmaf
 ```
 
 You should see `libvmaf` in the output. If not, install a build of ffmpeg that includes it (e.g. via Homebrew on macOS: `brew install ffmpeg`).
+
+**SSIM + PSNR** uses standard ffmpeg `ssim` and `psnr` filters and does not require libvmaf.
 
 ## Installation
 
@@ -29,23 +34,24 @@ Activate the venv, then run:
 
 ```bash
 source .venv/bin/activate   # On Windows: .venv\Scripts\activate
-python vmaf_compare.py <source_file> <transcoded_path>
+python transcode_compare.py <source_file> <transcoded_path>
 ```
 
 ### Example
 
 ```bash
 source .venv/bin/activate
-python vmaf_compare.py samples/base.mkv samples/transcoded/
+python transcode_compare.py samples/base.mkv samples/transcoded/
 ```
 
 ### Options
 
+- `--metric` – `vmaf` (default; remux vs transcode) or `ssim-psnr` (often better for transcode vs transcode)
 - `--extensions` – Comma-separated video extensions to search (default: `mkv,mp4,webm,mov`)
 - `--no-progress` – Disable the progress bar (useful when piping output)
-- `--n-subsample`, `-n` – Pass `n_subsample` to ffmpeg’s `libvmaf` filter: score every Nth frame (default: `1` = every frame). Speeds up long sources; scores are noisier on short clips. Odd values (e.g. 3, 5) are often preferable to even values for some encodes.
-- `--jobs`, `-j` – Number of parallel VMAF jobs (default: 4). Pass `--jobs 1` for single-threaded.
-- `--sort` – Sort table by `name`, `ratio`, `saved`, or `score` (default: `ratio`)
+- `--n-subsample`, `-n` – **VMAF only:** pass `n_subsample` to ffmpeg’s `libvmaf` filter: score every Nth frame (default: `1` = every frame). Speeds up long sources; scores are noisier on short clips. Odd values (e.g. 3, 5) are often preferable to even values for some encodes.
+- `--jobs`, `-j` – Number of parallel analysis jobs (default: 4). Pass `--jobs 1` for single-threaded.
+- `--sort` – Sort table by `name`, `ratio`, `saved`, or `score` (default: `ratio`). For `score`, uses VMAF or SSIM depending on `--metric`.
 - `--output`, `-o` – Write results to a file (plain text) in addition to printing to the terminal. Progress bars are still shown; use `--no-progress` to suppress them.
 
 ## Output
@@ -53,16 +59,16 @@ python vmaf_compare.py samples/base.mkv samples/transcoded/
 The script shows:
 
 1. A progress bar with estimated time remaining while processing
-2. A VMAF scale guide explaining score interpretation
+2. A quality scale guide (VMAF, or SSIM + PSNR) explaining score interpretation
 3. A table with:
    - **Filename** – Name of the transcoded file
    - **Codec** – Video codec (e.g. h264, h265, av1)
    - **Compression Ratio** – Source size ÷ transcoded size (e.g. 2.5x = transcoded is 2.5× smaller)
    - **File Size** – Size of the transcoded file
    - **Data Saved** – Bytes saved compared to the source
-   - **VMAF Score** – Quality score (0–100)
+   - **VMAF Score** (default metric) – Quality score (0–100), or **SSIM** / **PSNR (dB)** when using `--metric ssim-psnr` (identical inputs can report PSNR as `inf`)
 
-Results are sorted by compression ratio by default; use `--sort` to sort by name, data saved, or VMAF score.
+Results are sorted by compression ratio by default; use `--sort` to sort by name, data saved, or VMAF / SSIM score.
 
 ## Docker
 
