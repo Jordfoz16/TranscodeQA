@@ -307,17 +307,24 @@ def main() -> int:
 
     console.print()
 
-    table = Table(show_header=True, header_style="bold")
-    table.add_column("Filename", style="cyan")
-    table.add_column("Codec", justify="center")
-    table.add_column("Compression Ratio", justify="right")
-    table.add_column("File Size", justify="right")
-    table.add_column("Data Saved", justify="right")
+    # expand=True uses full terminal width; Filename uses fold so long names wrap instead of "…"
+    table = Table(show_header=True, header_style="bold", expand=True)
+    table.add_column(
+        "Filename",
+        style="cyan",
+        overflow="fold",
+        ratio=3,
+        min_width=24,
+    )
+    table.add_column("Codec", justify="center", ratio=1)
+    table.add_column("Compression Ratio", justify="right", ratio=1)
+    table.add_column("File Size", justify="right", ratio=1)
+    table.add_column("Data Saved", justify="right", ratio=1)
     if args.metric == "vmaf":
-        table.add_column("VMAF Score", justify="right")
+        table.add_column("VMAF Score", justify="right", ratio=1)
     else:
-        table.add_column("SSIM", justify="right")
-        table.add_column("PSNR (dB)", justify="right")
+        table.add_column("SSIM", justify="right", ratio=1)
+        table.add_column("PSNR (dB)", justify="right", ratio=1)
 
     for r in results:
         if args.metric == "vmaf":
@@ -352,8 +359,16 @@ def main() -> int:
 
     if args.output is not None:
         args.output.parent.mkdir(parents=True, exist_ok=True)
+        max_fn_len = max((len(r["filename"]) for r in results), default=0)
+        # Wide enough for full filenames + other columns (cap avoids huge lines on pathological names)
+        file_width = min(max(max_fn_len + 72, 120), 400)
         with open(args.output, "w") as f:
-            out_console = Console(file=f, no_color=True, force_terminal=False)
+            out_console = Console(
+                file=f,
+                no_color=True,
+                force_terminal=False,
+                width=file_width,
+            )
             out_console.print()
             if args.metric == "vmaf":
                 out_console.print(
